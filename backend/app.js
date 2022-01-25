@@ -3,6 +3,8 @@ const express = require('express');
 const app = express();
 const path = require('path');
 
+const userRoutes = require("./routes/user");
+
 
 mongoose.connect('mongodb+srv://login:password@cluster0.wbsym.mongodb.net/test?retryWrites=true&w=majority',
   { useNewUrlParser: true,
@@ -19,5 +21,7 @@ app.use((req, res, next) => {
   });
 
 app.use(express.json());
+
+app.use('/api/auth',userRoutes);
 
 module.exports = app;
