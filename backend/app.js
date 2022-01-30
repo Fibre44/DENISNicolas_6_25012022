@@ -2,11 +2,12 @@ const mongoose = require('mongoose');
 const express = require('express');
 const app = express();
 const path = require('path');
+const env = require('dotenv').config()
 
 const userRoutes = require("./routes/user");
 
 
-mongoose.connect('mongodb+srv://login:password@cluster0.wbsym.mongodb.net/test?retryWrites=true&w=majority',
+mongoose.connect('mongodb+srv://'+process.env.DB_USER+':'+process.env.DB_PASS+'@cluster0.wbsym.mongodb.net/test?retryWrites=true&w=majority',
   { useNewUrlParser: true,
     useUnifiedTopology: true })
   .then(() => console.log('Connexion à MongoDB réussie !'))
