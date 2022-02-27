@@ -2,3 +2,5 @@
 /backend/images
 /backend/.env 
 /frontend/node_modules
+/front/images/.DS_Store
+.DS_Store
