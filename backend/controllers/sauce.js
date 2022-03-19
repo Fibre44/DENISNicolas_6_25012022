@@ -67,96 +67,105 @@ exports.likesSauces = (req, res, next) => {
     })
         .then((sauce) => {
 
-            console.log(req.body)
-
             const likeStatut = req.body.like
             const userId = req.body.userId
 
+            //Controle de forme
             if (likeStatut == undefined || likeStatut == undefined) {
                 res.status(400).json({ message: "Il manque un élément" })
 
             } else {
+                //Controle de cohérence
 
                 console.log('le user id est ' + userId + ' like : ' + likeStatut)
-                const searchUserLike = sauce.usersLiked.find(user => user == userId)
-                const searchUserDislike = sauce.usersDisliker.find(user => user == userId)
+                const searchUserLike = sauce.usersLiked.find(user => user == userId) // Si l'utilisateur à un like alors la valeur n'est pas nul
+                const searchUserDislike = sauce.usersDisliker.find(user => user == userId) // Si l'utilisateur à un dislike alors la valeur n'est pas nul
 
-                console.log('Like :' + searchUserLike)
-                console.log('dislike : ' + searchUserDislike)
+                // Si je like je ne peux pas avoir déjà un dislike. Si je dislike je ne peux pas avoir un like
 
-                switch (likeStatut) {
-                    case 1:
-                        //Ajout d'un nouveau like
+                if (likeStatut == "1" && searchUserDislike != undefined) {
 
-                        if (searchUserLike == undefined) {
+                    res.status(403).json({ message: 'Un même utilisateur ne peut pas like si il a un dislike' });
 
-                            sauce.usersLiked.push(userId)
-                            sauce.likes += 1
+                } else if (likeStatut == "-1" && searchUserLike != undefined) {
+                    res.status(403).json({ message: 'Un même utilisateur ne peut pas dislike si il a un like' });
 
-                            sauce.save()
-                                .then(() => res.status(201).json({ message: "Mise à jour" }))
-                                .catch(error => res.status(400).json({ error }));
+                } else {
 
-                        } else {
-                            res.status(403).json({ message: 'Un même utilisateur ne peut pas avoir deux likes' });
+                    switch (likeStatut) {
+                        case 1:
+                            //Ajout d'un nouveau like
 
-                        }
+                            if (searchUserLike == undefined) {
 
-                        break;
+                                sauce.usersLiked.push(userId)
+                                sauce.likes += 1
 
-                    case -1:
+                                sauce.save()
+                                    .then(() => res.status(201).json({ message: "Mise à jour" }))
+                                    .catch(error => res.status(400).json({ error }));
 
-                        //Ajout d'un dislike
+                            } else {
+                                res.status(403).json({ message: 'Un même utilisateur ne peut pas avoir deux likes' });
 
-                        if (searchUserDislike == undefined) {
-                            sauce.usersDisliker.push(userId)
-                            sauce.dislikes += 1
+                            }
 
-                            sauce.save()
-                                .then(() => res.status(201).json({ message: "Mise à jour" }))
-                                .catch(error => res.status(400).json({ error }));
-                        } else {
-                            res.status(403).json({ message: 'Un même utilisateur ne peut pas avoir deux dislikes' });
+                            break;
 
-                        }
+                        case -1:
 
-                        break;
+                            //Ajout d'un dislike
 
-                    case 0:
+                            if (searchUserDislike == undefined) {
+                                sauce.usersDisliker.push(userId)
+                                sauce.dislikes += 1
 
-                        //Si 0 alors 2 possibilités l'utilisateur veut supprimer son like ou un dislike
+                                sauce.save()
+                                    .then(() => res.status(201).json({ message: "Mise à jour" }))
+                                    .catch(error => res.status(400).json({ error }));
+                            } else {
+                                res.status(403).json({ message: 'Un même utilisateur ne peut pas avoir deux dislikes' });
 
-                        if (searchUserLike != undefined) {
+                            }
 
-                            sauce.usersLiked.remove(userId)
-                            sauce.likes -= 1
+                            break;
 
-                            sauce.save()
-                                .then(() => res.status(201).json({ message: "Mise à jour" }))
-                                .catch(error => res.status(400).json({ error }));
+                        case 0:
 
+                            //Si 0 alors 2 possibilités l'utilisateur veut supprimer son like ou un dislike
 
-                        } else if (searchUserDislike != undefined) {
+                            if (searchUserLike != undefined) {
 
-                            sauce.usersDisliker.remove(userId)
-                            sauce.dislikes -= 1
+                                sauce.usersLiked.remove(userId)
+                                sauce.likes -= 1
 
-                            sauce.save()
-                                .then(() => res.status(201).json({ message: "Mise à jour" }))
-                                .catch(error => res.status(400).json({ error }));
+                                sauce.save()
+                                    .then(() => res.status(201).json({ message: "Mise à jour" }))
+                                    .catch(error => res.status(400).json({ error }));
 
 
-                        } else {
-                            res.status(500).json({ message: 'Erreur l utilisateur n existe pas ni en like ni en dislike' });
-                        }
+                            } else if (searchUserDislike != undefined) {
+
+                                sauce.usersDisliker.remove(userId)
+                                sauce.dislikes -= 1
+
+                                sauce.save()
+                                    .then(() => res.status(201).json({ message: "Mise à jour" }))
+                                    .catch(error => res.status(400).json({ error }));
 
 
-                        break;
+                            } else {
+                                res.status(500).json({ message: 'Erreur l utilisateur n existe pas ni en like ni en dislike' });
+                            }
+
+
+                            break;
+                    }
+
+
                 }
 
-
             }
-
 
         })
         .catch((error) => {
@@ -167,8 +176,20 @@ exports.likesSauces = (req, res, next) => {
 
 exports.modifySauce = (req, res, next) => {
 
+    // Si on essaye de mettre à jour l'image on aura dans la requete un .file donc il faudra convertir en JSON la sauce
 
-    const sauceUserId = (req.body.userId);
+
+    const img = req.file
+    let sauceUserId = null
+
+    if (img == undefined) {
+
+        sauceUserId = (req.body.userId);
+
+    } else {
+        const userIdJSON = JSON.parse(req.body.sauce)
+        sauceUserId = userIdJSON.userId
+    }
 
     Sauce.findOne({
 
@@ -180,9 +201,13 @@ exports.modifySauce = (req, res, next) => {
             //on test si l'utilisateur est le propriétaire
             if (sauceUserId == sauce.userId) {
 
+                const imgOld = sauce.imageUrl.split('/images/')[1];
+                console.log(imgOld);
+
+
                 const sauceObject = req.file ?
                     {
-                        ...JSON.parse(req.body.thing),
+                        ...JSON.parse(req.body.sauce),
                         imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
                     } : { ...req.body };
 
@@ -191,7 +216,6 @@ exports.modifySauce = (req, res, next) => {
                     .catch(error => res.status(400).json({ error }));
             } else {
                 res.status(403).json({ message: "unauthorized request" })
-                console.log("Erreur de connexion")
             }
 
         })
